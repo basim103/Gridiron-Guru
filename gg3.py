@@ -6,13 +6,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
-# Load the CSV data
+# Load CSV
 data = pd.read_csv("Passing.csv")  # Replace with the actual path to your downloaded dataset
 
+#title
 gg_title = st.title("Gridiron Guru")
 
 
-# Create a search bar
+# search bar
 search_query = st.text_input("Search for a player:")
 
 # Filter and display the player's stats
@@ -22,10 +23,9 @@ if search_query:
         st.write(f"**{search_query} Stats**")
         st.write(player_stats)
 
-        # Radar chart for multiple players' statistics
-        st.write(f"**Statistics for Different Players**")
+        # Radar chart
+        st.write(f"**QB Radar Chart**")
 
-        # Create a list of players to choose from
         players = player_stats['Player'].tolist()
         selected_players = st.multiselect("Select players for radar chart:", players, key="radar_players")
 
@@ -58,9 +58,9 @@ if search_query:
             else:
                 st.write("Select at least one statistic.")
 
-        # QBR pie chart for different players
+        # QBR pie chart
         qbr_stat = 'QBR'  # Replace with the actual column name for QBR in your dataset
-        st.write(f"**{qbr_stat} Pie Chart for Different Players**")
+        st.write(f"**{qbr_stat} Pie Chart **")
         
         # Create a list of players to choose from
         players = player_stats['Player'].tolist()
