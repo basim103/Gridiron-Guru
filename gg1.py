@@ -1,152 +1,86 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 
-# URL of page
-url = 'https://www.pro-football-reference.com/years/2022/passing.htm'
+# Load the CSV data
+data = pd.read_csv("C:\\Users\\Basim\\Passing.csv") 
 
-import pandas as pd
-import numpy as np
-from urllib.request import urlopen
-from bs4 import BeautifulSoup
-
-def scrape_data(url):
-    # Open URL and pass to BeautifulSoup
-    html = urlopen(url)
-    stats_page = BeautifulSoup(html, 'html.parser')  # Specify the parser type (e.g., 'html.parser')
-
-    # Collect table headers
-    column_headers = stats_page.findAll('tr')[0]
-    column_headers = [i.getText() for i in column_headers.findAll('th')]
-
-    # Collect table rows
-    rows = stats_page.findAll('tr')[1:]
-
-    # Get stats from each row
-    qb_stats = []
-    for i in range(len(rows)):
-        qb_stats.append([col.getText() for col in rows[i].findAll('td')])
-
-    # Create DataFrame from our scraped data
-    data = pd.DataFrame(qb_stats, columns=column_headers[1:])
-
-    # Rename sack yards column to `Yds_Sack`
-    new_columns = data.columns.values
-    new_columns[-6] = 'Yds_Sack'
-    data.columns = new_columns
-
-    # Select stat categories
-    categories = ['Cmp%', 'Yds', 'TD', 'Int', 'Y/A', 'Rate']
-
-    # Create data subset for radar chart
-    data_radar = data[['Player', 'Tm'] + categories]
-
-    # Convert data to numerical values
-    for i in categories:
-        data_radar[i] = pd.to_numeric(data_radar[i])
-
-    # Remove ornamental characters for achievements
-    data_radar['Player'] = data_radar['Player'].str.replace('*', '')
-    data_radar['Player'] = data_radar['Player'].str.replace('+', '')
-
-    return data_radar
-
-# Rename sack yards column to `Yds_Sack`
-new_columns = data.columns.values
-new_columns[-6] = 'Yds_Sack'
-data.columns = new_columns
-
-# Select stat categories
-categories = ['Cmp%', 'Yds', 'TD', 'Int', 'Y/A', 'Rate']
-
-# Create data subset for radar chart
-data_radar = data[['Player', 'Tm'] + categories]
-data_radar.head()
-
-# Convert data to numerical values
-for i in categories:
-    data_radar[i] = pd.to_numeric(data_radar[i])
-
-# Remove ornamental characters for achievements
-data_radar['Player'] = data_radar['Player'].str.replace('*', '')
-data_radar['Player'] = data_radar['Player'].str.replace('+', '')
-
-# Calculate angles for radar chart
-offset = np.pi/6
-angles = np.linspace(0, 2*np.pi, len(categories) + 1) + offset
-
-def create_radar_chart(ax, angles, player_data, color='blue'):
-    
-    # Plot data and fill with team color
-    ax.plot(angles, np.append(player_data[-(len(angles)-1):], player_data[-(len(angles)-1)]), color=color, linewidth=2)
-    ax.fill(angles, np.append(player_data[-(len(angles)-1):], player_data[-(len(angles)-1)]), color=color, alpha=0.2)
-    
-    # Set category labels
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(categories)
-    
-    # Remove radial labels
-    ax.set_yticklabels([])
-
-    # Add player name
-    ax.text(np.pi/2, 1.7, player_data[0], ha='center', va='center', size=18, color=color)
-    
-    # Use white grid
-    ax.grid(color='white', linewidth=1.5)
-
-    # Set axis limits
-    ax.set(xlim=(0, 2*np.pi), ylim=(0, 1))
-
-    return ax
-
-def get_qb_data(data, team):
-    return np.asarray(data[data['Tm'] == team])[0]
+gg_title = st.title("Gridiron Guru")
 
 
-def create_radar_graph(data):
-    categories = data.columns[1:]
-    values = data.values.tolist()[0][1:]
-    values += values[:1]  # To close the loop of the radar graph
+# Create a search bar
+search_query = st.text_input("Search for a player:")
 
-    fig = go.Figure()
+# Filter and display the player's stats
+if search_query:
+    player_stats = data[data['Player'].str.contains(search_query, case=False)]
+    if not player_stats.empty:
+        st.write(f"**{search_query} Stats**")
+        st.write(player_stats)
 
-    fig.add_trace(go.Scatterpolar(
-        r=values,
-        theta=categories,
-        fill='toself'
-    ))
+        # Radar chart for multiple players' statistics
+        st.write(f"**Statistics for Different Players**")
 
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(visible=True, range=[0, max(values)])
-        ),
-        showlegend=False
-    )
+        # Create a list of players to choose from
+        players = player_stats['Player'].tolist()
+        selected_players = st.multiselect("Select players for radar chart:", players, key="radar_players")
 
-    return fig
+        if selected_players:
+            # Select the statistics for the radar chart
+            selected_stats = st.multiselect("Select statistics for radar chart:", player_stats.columns[5:], key="radar_stats")
+            
+            if selected_stats:
+                selected_stats_names = [stat for stat in selected_stats]
+                num_stats = len(selected_stats)
+                angles = np.linspace(0, 2 * np.pi, num_stats, endpoint=False)
+                angles = np.concatenate((angles, [angles[0]]))  # Close the shape
 
-def main():
-    st.title('Quarterback Radar Chart')
+                fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'polar': True})
+                ax.set_theta_offset(np.pi / 2)
+                ax.set_theta_direction(-1)
 
-    # Scrape data from the URL
-    url = 'https://www.pro-football-reference.com/years/2022/passing.htm'
-    data_radar = scrape_data(url)
+                # Plot each player's radar chart
+                for player in selected_players:
+                    player_data = player_stats[player_stats['Player'] == player]
+                    values = player_data[selected_stats].values.flatten()
+                    values = np.concatenate((values, [values[0]]))  # Close the shape
+                    ax.plot(angles, values, label=player)
 
-    # Create a dropdown to select the team
-    teams = data_radar['Tm'].unique()
-    selected_team = st.selectbox('Select Team', teams)
+                ax.set_xticks(angles[:-1])
+                ax.set_xticklabels(selected_stats_names)
+                ax.legend(loc='upper right')
 
-    # Display the radar chart for the selected team
-    player_data = get_qb_data(data_radar, selected_team)
-    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    create_radar_chart(ax, angles, player_data)
-    st.pyplot(fig)
+                st.pyplot(fig)
+            else:
+                st.write("Select at least one statistic.")
 
-if __name__ == "__main__":
-    main()
+        # QBR pie chart for different players
+        qbr_stat = 'QBR'  # Replace with the actual column name for QBR in your dataset
+        st.write(f"**{qbr_stat} Pie Chart for Different Players**")
+        
+        # Create a list of players to choose from
+        players = player_stats['Player'].tolist()
+        player_stats[qbr_stat] = player_stats[qbr_stat].astype(float)  # Convert to float
+        selected_players_qbr = st.multiselect("Select players:", players)
+
+        if selected_players_qbr:
+            qbr_percentages = player_stats[player_stats['Player'].isin(selected_players_qbr)][qbr_stat]
+            labels = selected_players_qbr
+            sizes = qbr_percentages
+
+            plt.figure(figsize=(8, 8))
+            plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+            plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+            st.pyplot(plt)
+        else:
+            st.write("Select at least one player.")
+    else:
+        st.write("Player not found.")
 
