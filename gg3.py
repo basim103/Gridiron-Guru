@@ -60,7 +60,7 @@ if search_query:
 
         # QBR pie chart
         qbr_stat = 'QBR'  # Replace with the actual column name for QBR in your dataset
-        st.write(f"**{qbr_stat} Pie Chart **")
+        st.write(f"**{qbr_stat} Pie Chart**")
         
         # Create a list of players to choose from
         players = player_stats['Player'].tolist()
