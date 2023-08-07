@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 # Load the CSV data
-data = pd.read_csv("C:\\Users\\Basim\\Passing.csv")  # Replace with the actual path to your downloaded dataset
+data = pd.read_csv("Passing.csv")  # Replace with the actual path to your downloaded dataset
 
 gg_title = st.title("Gridiron Guru")
 
