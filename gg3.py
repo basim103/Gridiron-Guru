@@ -6,14 +6,12 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
-# Load CSV
-data = pd.read_csv("Passing.csv")  # Replace with the actual path to your downloaded dataset
 
-#title
+data = pd.read_csv("Passing.csv") 
+
 gg_title = st.title("Gridiron Guru")
 
 
-# search bar
 search_query = st.text_input("Search for a player:")
 
 # Filter and display the player's stats
